@@ -1,0 +1,127 @@
+networks:
+  app_network:
+    name: app_network
+    driver: bridge
+
+services:
+  # PostgresSQL Service
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: storedb
+    ports:
+      - "6432:5432"
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data # Mount volume
+      - ./sql/init_postgresql.sql:/docker-entrypoint-initdb.d/init.sql # init script
+    networks:
+      - app_network
+    restart: always
+  
+  # MySQL Service
+  mysql:
+    image: mysql:latest
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: storedb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "5506:3306"
+    volumes:
+      - ./volumes/mysql:/var/lib/mysql  # Mount volume สำหรับ MySQL
+      - ./sql/init_mysql.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app_network
+    restart: always
+
+  # MariaDB Service
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: storedb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "6607:3306"
+    volumes:
+      - ./volumes/mariadb:/var/lib/mysql  # Mount volume สำหรับ MariaDB
+      - ./sql/init_mariadb.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app_network
+    restart: always
+  
+  # SQL Server Service (Azure SQL Edge)
+  mssql:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: mssql_db
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: "MyPassword@123"
+      MSSQL_DATABASE: storedb
+    ports:
+      - "1533:1433"
+    volumes:
+      - ./volumes/mssql:/var/opt/mssql  # Mount volume สำหรับ SQL Server
+      - ./sql/init_sqlserver.sql:/var/opt/mssql/init.sql  # Mount SQL init file
+    networks:
+      - app_network
+    restart: always
+  
+  # Oracle Service
+  oracle:
+    image: gvenzl/oracle-free:latest
+    container_name: oracle_db
+    environment:
+      - ORACLE_PASSWORD=MyPassword@123
+      - APP_USER=my_user
+      - APP_USER_PASSWORD=MyPassword@123
+      - ORACLE_SID=FREE
+      - ORACLE_DATABASE=storedb
+      - ORACLE_LISTENER_PORT=1521
+    ports:
+      - "1621:1521"
+    volumes:
+      - ./volumes/oracle:/opt/oracle/oradata  # Mount volume สำหรับ Oracle
+      - ./sql/init_oracle.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    networks:
+    - app_network
+
+  # MongoDB Service
+  mongo:
+    image: mongo:latest
+    container_name: mongo_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: myuser
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+      MONGO_INITDB_DATABASE: storedb
+    ports:
+      - "37017:27017"
+    volumes:
+      - ./volumes/mongodb:/data/db  # Mount volume สำหรับ MongoDB
+      - ./sql/init_mongodb.js:/docker-entrypoint-initdb.d/init.js  # Use JS script for init
+    networks:
+      - app_network
+    restart: always
+
+  # SQLite Service
+  sqlite:
+    platform: linux/arm64  # เปลี่ยนเป็น ARM สำหรับ macOS M1
+    image: keinos/sqlite3:latest  # ใช้ image ที่รองรับ ARM
+    container_name: sqlite_db
+    environment:
+      DB_PATH: /data/storedb.db
+    volumes:
+      - ./data:/data  # Mount volume สำหรับ SQLite
+      - ./sql:/docker-entrypoint-initdb.d  # Mount ไฟล์ SQL ที่จะใช้ init
+    command: sh -c "sqlite3 /data/storedb.db < /docker-entrypoint-initdb.d/init_sqlite.sql && tail -f /dev/null"  # รันไฟล์ SQL แล้วให้ container ทำงานต่อ
+    networks:
+      - app_network
+    restart: always
